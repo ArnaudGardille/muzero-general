@@ -109,7 +109,7 @@ class MuZero:
         self.replay_buffer_worker = None
         self.shared_storage_worker = None
 
-    def train(self, log_in_tensorboard=True):
+    def train(self, log_in_tensorboard=True, per_step_progress = False):
         """
         Spawn ray workers and launch the training.
 
@@ -149,7 +149,7 @@ class MuZero:
             pb = ProgressBar(total = total_games_to_play, desc = "Timesteps", smoothing = 0)
 
         self.replay_buffer_worker = replay_buffer.ReplayBuffer.remote(
-            self.checkpoint, self.replay_buffer, self.config, pb.actor if pb is not None else None
+            self.checkpoint, self.replay_buffer, self.config, pb.actor if pb is not None and per_step_progress == False else None
         )
 
         if self.config.use_last_model_value:
@@ -168,10 +168,12 @@ class MuZero:
             for seed in range(self.config.num_workers)
         ]
 
+
+        pba_for_workers = pb.actor if pb is not None and per_step_progress == True else None
         # Launch workers
         [
             self_play_worker.continuous_self_play.remote(
-                self.shared_storage_worker, self.replay_buffer_worker
+                self.shared_storage_worker, self.replay_buffer_worker, pba=pba_for_workers
             )
             for self_play_worker in self.self_play_workers
         ]

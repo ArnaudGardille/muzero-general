@@ -28,7 +28,7 @@ class SelfPlayDirect:
         self.model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         self.model.eval()
 
-    def continuous_self_play(self, shared_storage, replay_buffer, test_mode=False):
+    def continuous_self_play(self, shared_storage, replay_buffer, test_mode=False, pba = None):
         while ray.get(
             shared_storage.get_info.remote("training_step")
         ) < self.config.training_steps and not ray.get(
@@ -47,6 +47,7 @@ class SelfPlayDirect:
                     False,
                     "self",
                     0,
+                    pba = pba
                 )
 
                 replay_buffer.save_game.remote(game_history, shared_storage)
@@ -59,6 +60,7 @@ class SelfPlayDirect:
                     False,
                     "self" if len(self.config.players) == 1 else self.config.opponent,
                     self.config.muzero_player,
+                    pba = pba
                 )
 
                 # Save to the shared storage
@@ -108,7 +110,7 @@ class SelfPlayDirect:
         self.close_game()
 
     def play_game(
-        self, temperature, temperature_threshold, render, opponent, muzero_player
+        self, temperature, temperature_threshold, render, opponent, muzero_player, pba = None
     ):
         """
         Play one game with actions based on the Monte Carlo tree search at each moves.
@@ -168,6 +170,9 @@ class SelfPlayDirect:
                     )
 
                 observation, reward, done = self.game.step(action)
+
+                if pba is not None:
+                    pba.update.remote(1)
 
                 if render:
                     print(f"Played action: {self.game.action_to_string(action)}")
