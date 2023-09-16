@@ -5,7 +5,7 @@ import gym
 import numpy
 import torch
 
-from gym.wrappers import Monitor
+from gym.wrappers import RecordVideo
 import glob
 import io
 import base64
@@ -160,7 +160,7 @@ class Game(AbstractGame):
         self.useMonitor = useMonitor
 
         if self.useMonitor:
-            self.env = Monitor(self.env, './video', force=True)
+            self.env = RecordVideo(self.env, './video')
 
             if display is None:
                 display = Display(visible=0, size=(1400, 900))
